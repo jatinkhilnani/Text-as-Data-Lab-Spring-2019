@@ -38,7 +38,7 @@ head(irish_budget_TTR)
 
 # 3.2 Mean per-document TTR scores by year, party
 
-TTR_by_year <- aggregate(irish_budget_TTR, by = list(data_corpus_irishbudgets[["year"]]$year), FUN = mean) %>% setNames(c("year", "TTR"))
+TTR_by_year <- aggregate(irish_budget_TTR, by = list(data_corpus_irishbudgets[["year"]]$year), FUN = mean, na.rm = TRUE) %>% setNames(c("year", "TTR"))
 
 plot(TTR_by_year)
 
@@ -47,11 +47,12 @@ aggregate(irish_budget_TTR, by = list(data_corpus_irishbudgets[["party"]]$party)
 # 3.3 Calculate TTR score by year, party 
 
 # by year
-# textstat_lexdiv: "calculates the lexical diversity or complexity of text(s)" using any number of measures.
-textstat_lexdiv(dfm(data_corpus_irishbudgets, groups = "year", remove_punct = TRUE, verbose = TRUE), measure = "TTR")
+# textstat_lexdiv: "calculates the lexical diversity or complexity of text(s)" using any number of measures.'
+TTR <- textstat_lexdiv(budget_tokens, measure = "TTR")
+aggregate(TTR$TTR, by = list(data_corpus_irishbudgets[["year"]]$year), FUN = mean, na.rm = TRUE) %>% setNames(c("year", "TTR"))
 
 # Sidebar: using the "groups" parameter is how to group documents by a covariate -- note how this changes the ndocs of your corpus
-textstat_lexdiv(dfm(data_corpus_irishbudgets, groups = "party", remove_punct = TRUE, verbose = TRUE), measure = "TTR")
+aggregate(TTR$TTR, by = list(data_corpus_irishbudgets[["party"]]$party), FUN = mean, na.rm = TRUE) %>% setNames(c("party", "TTR"))
 
 # Thoughts on TTR
 
@@ -129,12 +130,9 @@ boot_flesch_by_party <- pblapply(large_parties, function(x){
 })
 names(boot_flesch_by_party) <- large_parties
 
-# Define the standard error function
-std <- function(x) sd(x)/sqrt(length(x))
-
 # compute mean and std.errors
 party_means <- lapply(boot_flesch_by_party, mean) %>% unname() %>% unlist()
-party_ses <- lapply(boot_flesch_by_party, std) %>% unname() %>% unlist()
+party_ses <- lapply(boot_flesch_by_party, sd) %>% unname() %>% unlist() # bootstrap standard error = sample standard deviation bootstrap distribution
 
 # Plot results--party
 plot_dt <- tibble(party = large_parties, mean = party_means, ses = party_ses)
